@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt" data-mode="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#1b2a4a">
+<meta name="description" content="Aeris — clima em tempo real, elegante e preciso.">
+<title>Aeris · Clima</title>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<!-- Type: Manrope (display) + Inter (body/data) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ DYNAMIC SKY BACKGROUND (signature element) ============ -->
+<div class="sky" id="sky" aria-hidden="true">
+  <div class="sky__orb sky__orb--a"></div>
+  <div class="sky__orb sky__orb--b"></div>
+  <div class="sky__grain"></div>
+</div>
+
+<!-- ============ SPLASH ============ -->
+<div class="splash" id="splash">
+  <div class="splash__mark">
+    <i class="bi bi-cloud-sun-fill"></i>
+  </div>
+  <p class="splash__title">Aeris</p>
+  <p class="splash__sub" id="splashSub">a preparar o seu céu…</p>
+</div>
+
+<!-- Rede de segurança: garante que o splash nunca fica preso, mesmo que
+     algo falhe nos scripts principais mais abaixo. Corre de forma
+     totalmente independente da aplicação. -->
+<script>
+  window.__aerisForceReveal = function (message) {
+    var splash = document.getElementById('splash');
+    var app = document.getElementById('app');
+    if (splash) splash.hidden = true;
+    if (app) {
+      app.hidden = false;
+      app.classList.add('app--visible');
+    }
+    if (message) console.warn('[Aeris] Revelação forçada:', message);
+  };
+  window.addEventListener('error', function (e) {
+    console.error('[Aeris] Erro capturado:', e.message, 'em', e.filename, 'linha', e.lineno);
+  });
+
+  // Diagnóstico: confirma que todos os módulos (ficheiros .js) carregaram
+  // corretamente. É chamado no evento "load" da janela, mais abaixo.
+  var __aerisChecked = false;
+  function __aerisCheckModules() {
+    if (__aerisChecked) return;
+    __aerisChecked = true;
+    var missing = [];
+    if (typeof CONFIG === 'undefined') missing.push('config.js');
+    if (typeof Storage === 'undefined') missing.push('storage.js');
+    if (typeof WeatherUtils === 'undefined') missing.push('weather-utils.js');
+    if (typeof Api === 'undefined') missing.push('aeris-weather.js');
+    if (typeof UI === 'undefined') missing.push('ui.js');
+    if (typeof App === 'undefined') missing.push('aeris-main.js');
+
+    if (missing.length) {
+      var banner = document.createElement('div');
+      banner.textContent = '⚠ Não carregou (mesmo após novas tentativas): ' + missing.join(', ') + ' — o servidor local pode estar a rejeitar estes pedidos. Tente recarregar a página.';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:#fff;padding:12px 16px;font:13px/1.4 -apple-system,sans-serif;z-index:9999;text-align:center;';
+      document.body.appendChild(banner);
+      window.__aerisForceReveal('módulos em falta: ' + missing.join(', '));
+    }
+  }
+  // Rede de segurança absoluta, caso o evento "load" demore ou não dispare.
+  setTimeout(__aerisCheckModules, 15000);
+
+
+  // Último recurso absoluto: nunca deixar o splash preso além de 5s.
+  setTimeout(function () { window.__aerisForceReveal('timeout de segurança (5s)'); }, 5000);
+</script>
+
+<!-- ============ APP SHELL ============ -->
+<div class="app" id="app" hidden>
+
+  <!-- ---------- TOP BAR ---------- -->
+  <header class="topbar">
+    <button class="iconbtn" id="btnLocate" aria-label="Usar localização atual">
+      <i class="bi bi-geo-alt-fill"></i>
+    </button>
+    <div class="topbar__search" id="searchWrap">
+      <i class="bi bi-search"></i>
+      <input type="text" id="searchInput" placeholder="Pesquisar cidade…" autocomplete="off" inputmode="search">
+      <button class="iconbtn iconbtn--ghost" id="btnClearSearch" hidden aria-label="Limpar"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <button class="iconbtn" id="btnUnit" aria-label="Alternar unidade">
+      <span id="unitLabel">°C</span>
+    </button>
+  </header>
+
+  <!-- suggestions dropdown -->
+  <div class="suggestions" id="suggestions" hidden></div>
+
+  <!-- ---------- SCREENS ---------- -->
+  <main class="screens">
+
+    <!-- ===== HOME ===== -->
+    <section class="screen screen--active" id="screen-home" data-screen="home">
+      <div class="scroll-area" id="homeScroll">
+
+        <!-- Alerta de tempo severo / ciclone -->
+        <button class="alert-banner" id="severeAlert" hidden>
+          <i class="bi" id="severeAlertIcon"></i>
+          <span class="alert-banner__text">
+            <strong id="severeAlertTitle"></strong>
+            <span id="severeAlertDetail"></span>
+          </span>
+          <i class="bi bi-x-lg alert-banner__dismiss" id="severeAlertDismiss"></i>
+        </button>
+
+        <!-- Hero -->
+        <div class="hero" id="hero">
+          <div class="hero__loc">
+            <h1 id="cityName">—</h1>
+            <p id="countryName" class="hero__country">—</p>
+          </div>
+          <p class="hero__datetime"><span id="localTime">--:--</span> · <span id="fullDate">—</span></p>
+
+          <div class="hero__main">
+            <i class="bi hero__icon" id="weatherIcon"></i>
+            <div class="hero__temp">
+              <span id="currentTemp">--</span><span class="hero__deg">°</span>
+            </div>
+          </div>
+          <p class="hero__desc" id="weatherDesc">A carregar…</p>
+          <p class="hero__feels"><span id="feelsLikeLabel">Sensação térmica de</span> <span id="feelsLike">--°</span></p>
+
+          <div class="hero__minmax">
+            <span><i class="bi bi-arrow-down"></i> <span id="tempMin">--°</span></span>
+            <span class="hero__dot">·</span>
+            <span><i class="bi bi-arrow-up"></i> <span id="tempMax">--°</span></span>
+          </div>
+
+          <p class="hero__tip" id="dailyTip" hidden></p>
+
+          <button class="favbtn" id="btnFavToggle" aria-label="Adicionar aos favoritos">
+            <i class="bi bi-star"></i>
+          </button>
+        </div>
+
+        <!-- Hourly forecast -->
+        <div class="card">
+          <div class="card__title"><i class="bi bi-clock-history"></i><span id="labelNext24h">Próximas 24 horas</span></div>
+          <div class="hourly-scroll" id="hourlyScroll"></div>
+        </div>
+
+        <!-- Gráfico de temperatura -->
+        <div class="card">
+          <div class="card__title"><i class="bi bi-graph-up"></i><span id="tempChartTitle">Gráfico de temperatura</span></div>
+          <div class="chart-wrap">
+            <svg id="tempChartSvg" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
+            <div class="chart-labels" id="tempChartLabels"></div>
+          </div>
+        </div>
+
+        <!-- Daily forecast -->
+        <div class="card">
+          <div class="card__title"><i class="bi bi-calendar3"></i><span id="labelNext7d">Previsão para 7 dias</span></div>
+          <div class="daily-list" id="dailyList"></div>
+        </div>
+
+        <!-- Details grid -->
+        <div class="card">
+          <div class="card__title"><i class="bi bi-grid-1x2"></i><span id="labelDetails">Detalhes</span></div>
+          <div class="details-grid" id="detailsGrid"></div>
+        </div>
+
+        <button class="footer-note footer-note--refresh" id="btnRefresh" aria-label="Atualizar dados do clima">
+          <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+          <span id="refreshLabel">Refresh</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== SEARCH ===== -->
+    <section class="screen" id="screen-search" data-screen="search">
+      <div class="scroll-area">
+        <h2 class="screen-title" id="labelSearchTitle">Pesquisar</h2>
+        <p class="screen-sub" id="labelSearchSub">Encontre o clima de qualquer cidade do mundo</p>
+        <div class="card">
+          <div class="card__title"><i class="bi bi-clock"></i><span id="labelRecentSearches">Pesquisas recentes</span></div>
+          <div id="recentList" class="simple-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FAVORITES ===== -->
+    <section class="screen" id="screen-favorites" data-screen="favorites">
+      <div class="scroll-area">
+        <h2 class="screen-title" id="labelFavoritesTitle">Favoritos</h2>
+        <p class="screen-sub" id="labelFavoritesSub">As suas cidades guardadas</p>
+        <div id="favoritesList" class="fav-grid"></div>
+        <div class="empty-state" id="favEmpty" hidden>
+          <i class="bi bi-star"></i>
+          <p id="labelFavEmpty">Ainda não tem cidades favoritas.</p>
+          <span id="labelFavEmptyHint">Toque na estrela no ecrã principal para guardar uma cidade.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SETTINGS ===== -->
+    <section class="screen" id="screen-settings" data-screen="settings">
+      <div class="scroll-area">
+        <h2 class="screen-title" id="labelSettingsTitle">Configurações</h2>
+        <p class="screen-sub" id="labelSettingsSub">Personalize a sua experiência</p>
+
+        <div class="card settings-card">
+          <div class="setting-row">
+            <div class="setting-row__label"><i class="bi bi-thermometer-half"></i><span id="labelTempUnit">Unidade de temperatura</span></div>
+            <div class="segmented" id="segUnit">
+              <button data-val="C" class="active">°C</button>
+              <button data-val="F">°F</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-row__label"><i class="bi bi-translate"></i><span id="labelLanguage">Idioma</span></div>
+            <button class="picker-btn" id="btnLangPicker">
+              <span id="currentLangName">Português</span>
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-row__label"><i class="bi bi-circle-half"></i><span id="labelTheme">Tema</span></div>
+            <div class="segmented segmented--3" id="segTheme">
+              <button data-val="auto" class="active">Auto</button>
+              <button data-val="light">Claro</button>
+              <button data-val="dark">Escuro</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-row__label"><i class="bi bi-geo"></i><span id="labelGeo">Permitir localização</span></div>
+            <label class="switch">
+              <input type="checkbox" id="toggleGeo" checked>
+              <span class="switch__track"><span class="switch__thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-row__label"><i class="bi bi-arrow-repeat"></i><span id="labelAutoRefresh">Atualização automática</span></div>
+            <label class="switch">
+              <input type="checkbox" id="toggleAuto" checked>
+              <span class="switch__track"><span class="switch__thumb"></span></span>
+            </label>
+          </div>
+        </div>
+
+        <p class="settings-group-title" id="labelMoreFeatures">Mais funcionalidades</p>
+        <div class="card settings-card">
+          <div class="setting-row">
+            <div class="setting-row__label"><i class="bi bi-reception-2"></i><span id="labelLowData">Modo pouco dados</span></div>
+            <label class="switch">
+              <input type="checkbox" id="toggleLowData">
+              <span class="switch__track"><span class="switch__thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-row__label"><i class="bi bi-lightbulb"></i><span id="labelDailyTips">Sugestões diárias</span></div>
+            <label class="switch">
+              <input type="checkbox" id="toggleDailyTips" checked>
+              <span class="switch__track"><span class="switch__thumb"></span></span>
+            </label>
+          </div>
+
+          <button class="setting-row setting-row--action" id="btnClearCache">
+            <div class="setting-row__label"><i class="bi bi-trash3"></i><span id="labelClearCache">Limpar cache</span></div>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+
+          <button class="setting-row setting-row--action" id="btnAbout">
+            <div class="setting-row__label"><i class="bi bi-info-circle"></i><span id="labelAbout">Acerca</span></div>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+
+        <p class="version-tag">Aeris · versão 1.1</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Seletor de idioma (folha modal) -->
+  <div class="sheet-overlay" id="langSheetOverlay" hidden>
+    <div class="sheet" id="langSheet">
+      <div class="sheet__handle"></div>
+      <h3 class="sheet__title" id="langSheetTitle">Selecionar idioma</h3>
+      <div class="sheet__list" id="langList"></div>
+    </div>
+  </div>
+
+  <!-- Acerca (folha modal) -->
+  <div class="sheet-overlay" id="aboutSheetOverlay" hidden>
+    <div class="sheet" id="aboutSheet">
+      <div class="sheet__handle"></div>
+      <div class="about-mark"><i class="bi bi-cloud-sun-fill"></i></div>
+      <h3 class="sheet__title">Aeris</h3>
+      <p class="about-text" id="aboutText">Aeris Clima oferece previsões do tempo com um design moderno, elegante e fácil de usar. Os dados meteorológicos são fornecidos pela Open-Meteo, garantindo informações confiáveis e atualizadas para o seu dia a dia.</p>
+      <p class="version-tag">Versão 1.1</p>
+      <button class="sheet__close" id="btnCloseAbout">OK</button>
+    </div>
+  </div>
+
+  <!-- ---------- BOTTOM NAV ---------- -->
+  <nav class="bottomnav">
+    <button class="navbtn active" data-nav="home"><i class="bi bi-house-door-fill"></i><span id="navHomeLabel">Início</span></button>
+    <button class="navbtn" data-nav="search"><i class="bi bi-search"></i><span id="navSearchLabel">Pesquisar</span></button>
+    <button class="navbtn" data-nav="favorites"><i class="bi bi-star-fill"></i><span id="navFavoritesLabel">Favoritos</span></button>
+    <button class="navbtn" data-nav="settings"><i class="bi bi-gear-fill"></i><span id="navSettingsLabel">Ajustes</span></button>
+  </nav>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast"></div>
+
+<!--
+  Os ficheiros abaixo usam "defer": o browser descarrega-os todos em
+  paralelo (muito mais rápido do que um de cada vez), mas garante que
+  são executados por esta ordem, só depois do HTML estar pronto. Isto
+  substitui o antigo carregador sequencial, que pedia um ficheiro de
+  cada vez e podia demorar vários segundos extra em ligações lentas.
+-->
+<script src="config.js" defer></script>
+<script src="storage.js" defer></script>
+<script src="weather-utils.js" defer></script>
+<script src="aeris-weather.js" defer></script>
+<script src="ui.js" defer></script>
+<script src="aeris-main.js" defer></script>
+<script>
+  // Roda a verificação de módulos assim que a página (incluindo os
+  // scripts com defer) estiver totalmente carregada.
+  window.addEventListener('load', function () {
+    setTimeout(__aerisCheckModules, 100);
+  });
+</script>
+</body>
+</html>
