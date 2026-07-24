@@ -1,0 +1,768 @@
+/* =========================================================================
+   Aeris · style.css
+   Design system premium — vidro fosco autêntico (glassmorphism),
+   inspirado em iOS 18 / Samsung One UI 8: cantos muito arredondados,
+   badges de ícone tonalizados, barra de navegação flutuante, tipografia
+   com hierarquia forte e superfícies com brilho de vidro real.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------
+   0. RESET & TOKENS
+   --------------------------------------------------------------------- */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, .display { font-family: 'Manrope', 'Inter', sans-serif; }
+button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
+input { font-family: inherit; border: none; background: none; color: inherit; outline: none; }
+ul, li { list-style: none; }
+i.bi { line-height: 1; }
+::selection { background: rgba(255,200,87,0.35); }
+
+:root {
+  --radius-xl: 32px;
+  --radius-lg: 26px;
+  --radius-md: 20px;
+  --radius-sm: 14px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ease: cubic-bezier(.22,.9,.32,1);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --accent: #FFC857;
+  --accent-2: #4FD1C5;
+  --danger: #FF6B6B;
+
+  /* Badge tonal palette — usadas nos ícones dos "Detalhes" e cabeçalhos */
+  --tone-blue-bg: rgba(64,140,255,0.16);   --tone-blue-fg: #4E8CFF;
+  --tone-indigo-bg: rgba(120,100,255,0.16); --tone-indigo-fg: #8577FF;
+  --tone-teal-bg: rgba(35,200,190,0.16);   --tone-teal-fg: #1FBFB0;
+  --tone-slate-bg: rgba(120,135,160,0.18); --tone-slate-fg: #7A8AA3;
+  --tone-amber-bg: rgba(255,171,64,0.18);  --tone-amber-fg: #F5A421;
+  --tone-gold-bg: rgba(255,197,87,0.20);   --tone-gold-fg: #E5A521;
+  --tone-rose-bg: rgba(255,110,120,0.18);  --tone-rose-fg: #F0596B;
+  --tone-cyan-bg: rgba(60,200,255,0.16);   --tone-cyan-fg: #29B6E8;
+  --tone-violet-bg: rgba(170,120,255,0.18);--tone-violet-fg: #9B6DF0;
+  --tone-green-bg: rgba(80,205,130,0.18);  --tone-green-fg: #2FAE68;
+}
+
+/* Light mode tokens */
+:root[data-mode="light"] {
+  --text-primary: #10192E;
+  --text-secondary: rgba(16,25,46,0.60);
+  --text-tertiary: rgba(16,25,46,0.40);
+  --glass-bg: rgba(255,255,255,0.72);
+  --glass-bg-strong: rgba(255,255,255,0.88);
+  --glass-border: rgba(255,255,255,0.75);
+  --glass-highlight: rgba(255,255,255,0.9);
+  --glass-shadow: 0 24px 60px -24px rgba(20,35,70,0.32), 0 2px 8px -2px rgba(20,35,70,0.10);
+  --chip-bg: rgba(255,255,255,0.75);
+  --sheet-bg: rgba(240,244,250,0.94);
+  --topbar-bg: rgba(255,255,255,0.7);
+  --track-bg: rgba(16,25,46,0.10);
+}
+
+/* Dark mode tokens */
+:root[data-mode="dark"] {
+  --text-primary: #F5F7FC;
+  --text-secondary: rgba(245,247,252,0.66);
+  --text-tertiary: rgba(245,247,252,0.44);
+  --glass-bg: rgba(24,30,48,0.78);
+  --glass-bg-strong: rgba(28,35,55,0.9);
+  --glass-border: rgba(255,255,255,0.14);
+  --glass-highlight: rgba(255,255,255,0.22);
+  --glass-shadow: 0 24px 60px -24px rgba(0,0,0,0.65), 0 2px 10px -2px rgba(0,0,0,0.4);
+  --chip-bg: rgba(255,255,255,0.1);
+  --sheet-bg: rgba(14,18,30,0.92);
+  --topbar-bg: rgba(16,20,34,0.75);
+  --track-bg: rgba(255,255,255,0.13);
+}
+
+/* Snow (day) theme é muito claro — força texto legível independente do modo */
+body[data-weather="snow"] { --text-primary: #16263A; --text-secondary: rgba(22,38,58,0.65); --text-tertiary: rgba(22,38,58,0.45); }
+
+/* Utilitário de vidro reutilizável — brilho superior + moldura + sombra suave.
+   Aplicado via ::before para nunca interferir com o conteúdo interno. */
+.glass {
+  position: relative;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+
+
+  box-shadow: var(--glass-shadow);
+}
+.glass::before {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, var(--glass-highlight) 0%, transparent 26%);
+  opacity: 0.35; mix-blend-mode: overlay;
+}
+
+/* ---------------------------------------------------------------------
+   1. DYNAMIC SKY BACKGROUND (signature element)
+   --------------------------------------------------------------------- */
+.sky {
+  position: fixed; inset: 0; z-index: -2; overflow: hidden;
+  transition: background 1.4s var(--ease);
+  background: linear-gradient(160deg, #4E7CF0 0%, #7FA8F5 42%, #FFC87A 100%);
+}
+.sky[data-theme="clear"]      { background: linear-gradient(160deg, #3D74F2 0%, #7CB4FF 42%, #FFCE7E 100%); }
+.sky[data-theme="cloudy"]     { background: linear-gradient(160deg, #5E7290 0%, #98A9BF 58%, #C9D4E2 100%); }
+.sky[data-theme="fog"]        { background: linear-gradient(160deg, #7C8798 0%, #A3AEBC 55%, #CDD5DE 100%); }
+.sky[data-theme="rain"]       { background: linear-gradient(160deg, #1B2A4D 0%, #2C4A72 55%, #4372A0 100%); }
+.sky[data-theme="rain-night"] { background: linear-gradient(160deg, #050813 0%, #121C34 55%, #1E3355 100%); }
+.sky[data-theme="storm"]      { background: linear-gradient(160deg, #0A0C16 0%, #181B2E 50%, #322A4A 100%); }
+.sky[data-theme="snow"]       { background: linear-gradient(160deg, #D3E6FA 0%, #E9F3FF 50%, #FFFFFF 100%); }
+.sky[data-theme="snow-night"] { background: linear-gradient(160deg, #081120 0%, #172640 55%, #2E4059 100%); }
+.sky[data-theme="night"]      { background: linear-gradient(160deg, #030712 0%, #0C1730 52%, #182B4D 100%); }
+
+.sky__orb {
+  position: absolute; border-radius: 50%; filter: blur(80px);
+  opacity: 0.5; will-change: transform;
+  /* Corre 1 vez ao abrir a app e fica parada — evita gastar GPU/bateria
+     continuamente com uma animação infinita que ninguém repara depois
+     dos primeiros segundos. */
+  animation: floatOrb 6s ease-in-out 1;
+  animation-fill-mode: forwards;
+}
+.sky__orb--a { width: 62vmax; height: 62vmax; top: -24vmax; right: -20vmax; background: radial-gradient(circle, rgba(255,255,255,0.55), transparent 65%); }
+.sky__orb--b { width: 52vmax; height: 52vmax; bottom: -22vmax; left: -18vmax; background: radial-gradient(circle, rgba(255,255,255,0.26), transparent 65%); animation-delay: 0.3s; }
+@keyframes floatOrb {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(-4%, 5%) scale(1.08); }
+}
+.sky__grain {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: 0.3; mix-blend-mode: overlay;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky__orb { animation: none; }
+}
+
+/* ---------------------------------------------------------------------
+   2. APP SHELL
+   --------------------------------------------------------------------- */
+.app {
+  position: relative; z-index: 1;
+  max-width: 560px; margin: 0 auto;
+  height: 100dvh; display: flex; flex-direction: column;
+}
+
+@media (min-width: 720px) {
+  .app { box-shadow: 0 50px 130px -44px rgba(0,0,0,0.55); border-radius: 44px; margin: 18px auto; height: calc(100dvh - 36px); overflow: hidden; }
+}
+
+/* Badge de ícone — círculo tonalizado usado em títulos de cartão, linhas de
+   definições e tiles de detalhe. Estilo "quick panel" do One UI / iOS Health. */
+.icon-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 11px; flex: none;
+  background: var(--tone-blue-bg); color: var(--tone-blue-fg);
+  font-size: 15px;
+}
+.icon-badge--sm { width: 22px; height: 22px; border-radius: 8px; font-size: 12px; }
+
+/* ---------------------------------------------------------------------
+   4. TOPBAR + SEARCH
+   --------------------------------------------------------------------- */
+.topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(var(--safe-top) + 16px) 16px 12px;
+  position: relative; z-index: 5;
+}
+.iconbtn {
+  width: 44px; height: 44px; flex: none; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+
+  box-shadow: 0 8px 20px -10px rgba(20,30,60,0.25);
+  font-size: 17px; color: var(--text-primary);
+  transition: transform .18s var(--ease-spring), background .2s;
+}
+.iconbtn:active { transform: scale(0.88); }
+.iconbtn--ghost { background: transparent; border: none; width: 32px; height: 32px; box-shadow: none; }
+#unitLabel { font-weight: 800; font-size: 14px; }
+
+.topbar__search {
+  flex: 1; display: flex; align-items: center; gap: 9px;
+  height: 44px; padding: 0 16px; border-radius: 22px;
+  background: var(--topbar-bg); border: 1px solid var(--glass-border);
+
+  box-shadow: 0 8px 20px -10px rgba(20,30,60,0.2);
+  color: var(--text-secondary); transition: box-shadow .25s var(--ease);
+}
+.topbar__search:focus-within { box-shadow: 0 0 0 3px rgba(255,255,255,0.3), 0 8px 20px -10px rgba(20,30,60,0.2); }
+.topbar__search input { flex: 1; font-size: 15px; color: var(--text-primary); }
+.topbar__search input::placeholder { color: var(--text-tertiary); }
+
+/* ---------------------------------------------------------------------
+   4b. CABEÇALHO FIXO DE CLIMA (aparece ao fazer scroll)
+   Ocupa exatamente o espaço da barra de pesquisa, para que os botões
+   de localização e unidade continuem sempre acessíveis. Assim que o
+   scroll do ecrã principal ultrapassa um pequeno limiar, a cidade e o
+   clima atual "sobem" e ficam fixos aqui; regressam ao hero assim que
+   se volta ao topo.
+   --------------------------------------------------------------------- */
+.sticky-weather {
+  position: absolute;
+  top: calc(var(--safe-top) + 16px);
+  left: 16px; right: 124px; height: 44px;
+  z-index: 6;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  border-radius: 22px;
+  background: var(--topbar-bg); border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 20px -10px rgba(20,30,60,0.22);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  opacity: 0; transform: translateY(-14px) scale(0.94);
+  pointer-events: none;
+  transition: transform .4s var(--ease-spring), opacity .3s var(--ease);
+}
+.sticky-weather--visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.sticky-weather__icon { font-size: 20px; flex: none; line-height: 1; }
+.sticky-weather__info { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.sticky-weather__city {
+  font-family: 'Manrope',sans-serif; font-weight: 800; font-size: 14px; letter-spacing: -0.1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
+}
+.sticky-weather__temp { font-weight: 800; font-size: 14px; color: var(--text-secondary); flex: none; }
+@media (max-width: 360px) {
+  .sticky-weather { left: 12px; right: 108px; }
+  .sticky-weather__city { max-width: 96px; }
+}
+
+.suggestions {
+  position: absolute; top: 72px; left: 16px; right: 16px; z-index: 30;
+  background: var(--sheet-bg); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow); overflow: hidden; max-height: 60vh; overflow-y: auto;
+  animation: dropIn .22s var(--ease);
+}
+@keyframes dropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.suggestion {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; text-align: left; font-size: 14.5px;
+  border-bottom: 1px solid var(--glass-border); color: var(--text-primary);
+  transition: background .15s;
+}
+.suggestion:last-child { border-bottom: none; }
+.suggestion:active { background: rgba(120,140,255,0.10); }
+.suggestion i.bi-geo-alt { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--tone-blue-bg); color: var(--tone-blue-fg); font-size: 14px; flex: none; }
+.suggestion__name { font-weight: 700; }
+.suggestion__meta { margin-left: auto; font-size: 12.5px; color: var(--text-tertiary); }
+
+/* ---------------------------------------------------------------------
+   5. SCREENS
+   --------------------------------------------------------------------- */
+.screens { flex: 1; position: relative; overflow: hidden; }
+.screen {
+  position: absolute; inset: 0; display: none;
+  opacity: 0; transform: translateX(14px) scale(0.99);
+}
+.screen--active { display: block; animation: screenIn .38s var(--ease) forwards; }
+@keyframes screenIn { to { opacity: 1; transform: translateX(0) scale(1); } }
+
+.scroll-area {
+  height: 100%; overflow-y: auto; padding: 4px 16px calc(112px + var(--safe-bottom));
+  scrollbar-width: none;
+}
+.scroll-area::-webkit-scrollbar { display: none; }
+
+/* ---------------------------------------------------------------------
+   5b. PULL-TO-REFRESH TEMÁTICO
+   O ícone que aparece ao puxar é o mesmo (e da mesma cor) que o ícone
+   do clima atual — sol, chuva, lua, neve… — em vez do spinner genérico.
+   --------------------------------------------------------------------- */
+#homeScroll { position: relative; }
+.pull-refresh {
+  position: absolute; top: 0; left: 0; right: 0; height: 60px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.pull-refresh i {
+  font-size: 28px; opacity: 0; transform: scale(0.5) rotate(0deg);
+  transition: opacity .12s linear;
+}
+.pull-refresh i.is-refreshing { opacity: 1 !important; transform: none !important; animation: spin360 .85s linear infinite; }
+.home-content { transition: transform .34s var(--ease-spring); will-change: transform; }
+.home-content.is-pulling { transition: none; }
+
+.screen-title { font-family: 'Manrope',sans-serif; font-size: 28px; font-weight: 800; padding-top: 10px; letter-spacing: -0.3px; }
+.screen-sub { color: var(--text-secondary); font-size: 14px; margin-top: 4px; margin-bottom: 20px; }
+
+/* ---------------------------------------------------------------------
+   6. HERO
+   --------------------------------------------------------------------- */
+.hero {
+  position: relative; padding: 20px 18px 28px; text-align: center; color: var(--text-primary);
+  margin-top: 4px; margin-bottom: 16px;
+}
+.hero__loc h1 { font-family: 'Manrope',sans-serif; font-size: 27px; font-weight: 800; letter-spacing: -0.3px; }
+.hero__country { font-size: 12.5px; color: var(--text-secondary); margin-top: 3px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+.hero__datetime { font-size: 13px; color: var(--text-tertiary); margin-top: 12px; font-weight: 500; }
+
+.hero__main { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 8px; }
+.hero__icon {
+  font-size: 78px; margin-right: 4px;
+  animation: iconPop .6s var(--ease-spring);
+}
+@keyframes iconPop { from { opacity: 0; transform: scale(0.7) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+/* ---------------------------------------------------------------------
+   6b. ÍCONES METEOROLÓGICOS A CORES
+   A classe utilitária .wx-icon é aplicada a qualquer ícone de condição
+   meteorológica (hero, previsão horária, previsão diária, cabeçalho
+   fixo, alertas) para que sol, chuva, lua, neve e trovoada tenham
+   sempre a sua cor característica, em vez de um tom neutro único.
+   --------------------------------------------------------------------- */
+.wx-icon.bi-sun-fill                    { color: #FFB300; }
+.wx-icon.bi-cloud-sun-fill              { color: #F5A623; }
+.wx-icon.bi-clouds-fill                 { color: #93A6C4; }
+.wx-icon.bi-cloud-haze2-fill            { color: #A7B2C4; }
+.wx-icon.bi-cloud-drizzle-fill,
+.wx-icon.bi-cloud-rain-fill,
+.wx-icon.bi-cloud-rain-heavy-fill,
+.wx-icon.bi-cloud-sleet-fill            { color: #3B9EFF; }
+.wx-icon.bi-cloud-snow-fill             { color: #7FD6FF; }
+.wx-icon.bi-cloud-lightning-fill,
+.wx-icon.bi-cloud-lightning-rain-fill   { color: #FFD54A; }
+.wx-icon.bi-cloud-moon-fill,
+.wx-icon.bi-moon-stars-fill,
+.wx-icon.bi-moon-fill                   { color: #9C8CFF; }
+.wx-icon.bi-wifi-off                    { color: var(--text-tertiary); }
+
+/* Lua: leve balanço (gira pouco e volta) — nunca uma volta completa */
+.wx-icon.bi-cloud-moon-fill,
+.wx-icon.bi-moon-stars-fill,
+.wx-icon.bi-moon-fill {
+  display: inline-block;
+  transform-origin: 50% 55%;
+  animation: moonSway 5.5s ease-in-out infinite;
+}
+@keyframes moonSway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-8deg); }
+}
+/* No hero, mantém o "pop" de entrada e só depois começa o balanço suave */
+.hero__icon.wx-icon.bi-cloud-moon-fill,
+.hero__icon.wx-icon.bi-moon-stars-fill,
+.hero__icon.wx-icon.bi-moon-fill {
+  animation: iconPop .6s var(--ease-spring), moonSway 5.5s ease-in-out .6s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wx-icon.bi-cloud-moon-fill, .wx-icon.bi-moon-stars-fill, .wx-icon.bi-moon-fill { animation: none; }
+}
+
+/* Brilho suave (glow) apenas no ícone grande do hero, para um acabamento
+   mais sofisticado — cada condição projeta a sua própria luz. */
+.hero__icon.wx-icon.bi-sun-fill { filter: drop-shadow(0 12px 28px rgba(255,179,0,0.5)); }
+.hero__icon.wx-icon.bi-cloud-sun-fill { filter: drop-shadow(0 12px 28px rgba(245,166,35,0.42)); }
+.hero__icon.wx-icon.bi-clouds-fill,
+.hero__icon.wx-icon.bi-cloud-haze2-fill { filter: drop-shadow(0 12px 26px rgba(120,140,170,0.4)); }
+.hero__icon.wx-icon.bi-cloud-drizzle-fill,
+.hero__icon.wx-icon.bi-cloud-rain-fill,
+.hero__icon.wx-icon.bi-cloud-rain-heavy-fill,
+.hero__icon.wx-icon.bi-cloud-sleet-fill { filter: drop-shadow(0 12px 28px rgba(59,158,255,0.45)); }
+.hero__icon.wx-icon.bi-cloud-snow-fill { filter: drop-shadow(0 12px 28px rgba(127,214,255,0.45)); }
+.hero__icon.wx-icon.bi-cloud-lightning-fill,
+.hero__icon.wx-icon.bi-cloud-lightning-rain-fill { filter: drop-shadow(0 12px 28px rgba(255,213,74,0.45)); }
+.hero__icon.wx-icon.bi-cloud-moon-fill,
+.hero__icon.wx-icon.bi-moon-stars-fill,
+.hero__icon.wx-icon.bi-moon-fill { filter: drop-shadow(0 12px 28px rgba(156,140,255,0.5)); }
+.hero__temp { font-family: 'Manrope', sans-serif; font-size: 92px; font-weight: 800; line-height: 1; letter-spacing: -4px; }
+.hero__deg { font-size: 42px; font-weight: 700; vertical-align: super; opacity: 0.7; }
+
+.hero__desc { font-size: 18px; font-weight: 700; margin-top: 6px; }
+.hero__feels { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+.hero__minmax {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; margin-top: 18px;
+  font-size: 14px; font-weight: 700; color: var(--text-secondary);
+  padding: 8px 18px; border-radius: 20px;
+  background: var(--chip-bg); border: 1px solid var(--glass-border);
+}
+.hero__minmax i { font-size: 11px; }
+.hero__minmax i.bi-arrow-down { color: var(--tone-cyan-fg); }
+.hero__minmax i.bi-arrow-up { color: var(--tone-rose-fg); }
+.hero__dot { opacity: 0.4; }
+
+.favbtn {
+  position: absolute; top: 14px; right: 14px; width: 42px; height: 42px; border-radius: 15px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+ transition: transform .2s var(--ease-spring), color .2s;
+  box-shadow: 0 8px 18px -10px rgba(20,30,60,0.25);
+}
+.favbtn:active { transform: scale(0.86); }
+.favbtn--active { color: var(--accent); }
+.favbtn--active i { animation: starPop .4s var(--ease-spring); }
+@keyframes starPop { 0%{transform:scale(0.6);} 60%{transform:scale(1.3);} 100%{transform:scale(1);} }
+
+/* ---------------------------------------------------------------------
+   7. GLASS CARDS
+   --------------------------------------------------------------------- */
+.card {
+  position: relative;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow); padding: 20px 18px 22px; margin-bottom: 16px;
+  animation: cardIn .5s var(--ease);
+  overflow: hidden;
+}
+.card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, var(--glass-highlight) 0%, transparent 22%);
+  opacity: 0.3; mix-blend-mode: overlay;
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.card__title {
+  display: flex; align-items: center; gap: 11px; font-size: 14px; font-weight: 800;
+  color: var(--text-primary); letter-spacing: 0.1px; margin-bottom: 16px;
+}
+.card__title i.bi {
+  width: 32px; height: 32px; border-radius: 11px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; background: var(--tone-blue-bg); color: var(--tone-blue-fg);
+}
+.card:nth-of-type(2) .card__title i.bi { background: var(--tone-indigo-bg); color: var(--tone-indigo-fg); }
+.card:nth-of-type(3) .card__title i.bi { background: var(--tone-teal-bg); color: var(--tone-teal-fg); }
+
+/* Hourly scroll */
+.hourly-scroll { display: flex; gap: 10px; overflow-x: auto; margin: 0 -4px; padding: 2px 4px 6px; scrollbar-width: none; }
+.hourly-scroll::-webkit-scrollbar { display: none; }
+.hour-card {
+  flex: none; width: 66px; display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 16px 4px; border-radius: var(--radius-md); background: var(--chip-bg);
+  border: 1px solid var(--glass-border);
+  transition: transform .2s var(--ease-spring);
+}
+.hour-card:active { transform: scale(0.93); }
+.hour-card__time { font-size: 11.5px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.hour-card__icon { font-size: 23px; }
+.hour-card__temp { font-size: 16px; font-weight: 800; }
+.hour-card__rain { font-size: 10.5px; color: var(--text-tertiary); display: flex; align-items: center; gap: 3px; font-weight: 600; }
+.hour-card__rain i { font-size: 9px; color: var(--tone-blue-fg); }
+
+/* Daily list */
+.daily-list { display: flex; flex-direction: column; }
+.day-row {
+  display: grid; grid-template-columns: 54px 44px 26px 28px 1fr 28px;
+  align-items: center; gap: 8px; padding: 12px 4px; font-size: 14px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.day-row:last-child { border-bottom: none; }
+.day-row__label { font-weight: 700; }
+.day-row__rain { font-size: 11px; color: var(--tone-blue-fg); display: flex; align-items: center; gap: 3px; font-weight: 700; }
+.day-row__rain i { font-size: 9px; }
+.day-row__rain:empty::before { content: ''; }
+.day-row__icon { font-size: 19px; text-align: center; }
+.day-row__min, .day-row__max { color: var(--text-secondary); font-weight: 700; text-align: center; }
+.day-row__max { color: var(--text-primary); }
+.day-row__bar { position: relative; height: 5px; border-radius: 3px; background: var(--track-bg); }
+.day-row__bar-fill { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, var(--tone-cyan-fg), var(--accent)); }
+
+/* Details grid */
+.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.detail-tile {
+  display: flex; flex-direction: column; gap: 9px; padding: 17px 15px;
+  border-radius: var(--radius-md); background: var(--chip-bg); border: 1px solid var(--glass-border);
+}
+.detail-tile i { font-size: 15px; width: 32px; height: 32px; border-radius: 11px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; background: var(--tone-blue-bg); color: var(--tone-blue-fg); }
+.detail-tile[data-tone="indigo"] i { background: var(--tone-indigo-bg); color: var(--tone-indigo-fg); }
+.detail-tile[data-tone="teal"]   i { background: var(--tone-teal-bg);   color: var(--tone-teal-fg); }
+.detail-tile[data-tone="slate"]  i { background: var(--tone-slate-bg);  color: var(--tone-slate-fg); }
+.detail-tile[data-tone="amber"]  i { background: var(--tone-amber-bg);  color: var(--tone-amber-fg); }
+.detail-tile[data-tone="gold"]   i { background: var(--tone-gold-bg);   color: var(--tone-gold-fg); }
+.detail-tile[data-tone="rose"]   i { background: var(--tone-rose-bg);   color: var(--tone-rose-fg); }
+.detail-tile[data-tone="cyan"]   i { background: var(--tone-cyan-bg);   color: var(--tone-cyan-fg); }
+.detail-tile[data-tone="violet"] i { background: var(--tone-violet-bg); color: var(--tone-violet-fg); }
+.detail-tile[data-tone="green"]  i { background: var(--tone-green-bg);  color: var(--tone-green-fg); }
+.detail-tile__label { font-size: 11.5px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-tile__value { font-size: 17px; font-weight: 800; letter-spacing: -0.1px; }
+
+.footer-note {
+  text-align: center; font-size: 12px; color: var(--text-tertiary); font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px; margin: 10px auto 8px;
+}
+.footer-note--refresh {
+  padding: 9px 18px; border-radius: 16px;
+  background: var(--chip-bg); border: 1px solid var(--glass-border);
+  transition: transform .16s var(--ease-spring), background .2s;
+}
+.footer-note--refresh:active { transform: scale(0.95); background: var(--glass-bg); }
+.footer-note--refresh i { font-size: 13px; transition: transform .5s var(--ease); }
+.footer-note--refresh.is-refreshing i { animation: spin360 .8s linear infinite; }
+@keyframes spin360 { to { transform: rotate(360deg); } }
+
+/* ---------------------------------------------------------------------
+   8. FAVORITES
+   --------------------------------------------------------------------- */
+.fav-grid { display: flex; flex-direction: column; gap: 12px; }
+.fav-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 18px 18px; border-radius: var(--radius-lg);
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+ text-align: left; transition: transform .18s var(--ease-spring);
+  box-shadow: var(--glass-shadow);
+}
+.fav-card:active { transform: scale(0.98); }
+.fav-card__info { display: flex; flex-direction: column; gap: 3px; }
+.fav-card__name { font-weight: 800; font-size: 16.5px; }
+.fav-card__country { font-size: 12.5px; color: var(--text-tertiary); }
+.fav-card__remove { width: 32px; height: 32px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-tertiary); background: var(--track-bg); }
+.fav-card__remove:active { color: #fff; background: var(--danger); }
+
+.empty-state { text-align: center; padding: 70px 24px; color: var(--text-tertiary); }
+.empty-state i { font-size: 30px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; width: 68px; height: 68px; border-radius: 22px; margin-left: auto; margin-right: auto; background: var(--tone-gold-bg); color: var(--tone-gold-fg); }
+.empty-state p { font-weight: 800; color: var(--text-secondary); margin-bottom: 4px; font-size: 15px; }
+.empty-state span { font-size: 13px; }
+.empty-hint { color: var(--text-tertiary); font-size: 13.5px; padding: 8px 2px; }
+
+.simple-list { display: flex; flex-direction: column; }
+.simple-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 2px;
+  border-bottom: 1px solid var(--glass-border); font-size: 14.5px; text-align: left;
+}
+.simple-item:last-child { border-bottom: none; }
+.simple-item i:first-child { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--tone-slate-bg); color: var(--tone-slate-fg); font-size: 13px; flex: none; }
+.simple-item__meta { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
+.simple-item i.bi-chevron-right { background: none; width: auto; height: auto; font-size: 12px; color: var(--text-tertiary); }
+
+/* ---------------------------------------------------------------------
+   9. SETTINGS
+   --------------------------------------------------------------------- */
+.settings-card { padding: 6px 18px; }
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 17px 0; border-bottom: 1px solid var(--glass-border);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-row__label { display: flex; align-items: center; gap: 13px; font-size: 14.5px; font-weight: 700; }
+.setting-row__label i { width: 32px; height: 32px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--tone-teal-bg); color: var(--tone-teal-fg); }
+#segLanguageRow .setting-row__label i, .setting-row:has(#btnLangPicker) .setting-row__label i { background: var(--tone-indigo-bg); color: var(--tone-indigo-fg); }
+.setting-row:has(#segTheme) .setting-row__label i { background: var(--tone-violet-bg); color: var(--tone-violet-fg); }
+.setting-row:has(#toggleGeo) .setting-row__label i { background: var(--tone-blue-bg); color: var(--tone-blue-fg); }
+.setting-row:has(#toggleAuto) .setting-row__label i { background: var(--tone-green-bg); color: var(--tone-green-fg); }
+#btnLocate .setting-row__label i { background: var(--tone-cyan-bg); color: var(--tone-cyan-fg); }
+
+.segmented { display: flex; background: var(--track-bg); border-radius: 14px; padding: 4px; gap: 2px; }
+.segmented button {
+  padding: 8px 15px; font-size: 13px; font-weight: 800; border-radius: 11px; color: var(--text-secondary);
+  transition: background .2s, color .2s;
+}
+.segmented button.active { background: var(--glass-bg-strong); color: var(--text-primary); box-shadow: 0 4px 12px rgba(0,0,0,0.14); }
+.segmented--3 button { padding: 8px 11px; }
+
+.switch { position: relative; display: inline-block; width: 48px; height: 28px; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+.switch__track { position: absolute; inset: 0; background: var(--track-bg); border-radius: 20px; transition: background .25s var(--ease); }
+.switch__thumb { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.28); transition: transform .25s var(--ease-spring); }
+.switch input:checked + .switch__track { background: var(--tone-teal-fg); }
+.switch input:checked + .switch__track .switch__thumb { transform: translateX(20px); }
+
+.version-tag { text-align: center; font-size: 12px; color: var(--text-tertiary); margin: 24px 0 10px; font-weight: 500; }
+
+/* ---------------------------------------------------------------------
+   10. BOTTOM NAV — barra flutuante estilo iOS 18 / One UI 8
+   --------------------------------------------------------------------- */
+.bottomnav {
+  position: absolute; left: 16px; right: 16px; bottom: calc(14px + var(--safe-bottom));
+  z-index: 10; display: flex; justify-content: space-around;
+  padding: 10px 8px;
+  background: var(--sheet-bg); border: 1px solid var(--glass-border);
+  border-radius: 26px;
+
+  box-shadow: var(--glass-shadow);
+}
+.navbtn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 7px 16px; border-radius: 16px; color: var(--text-tertiary);
+  font-size: 10.5px; font-weight: 700; transition: color .2s, transform .2s var(--ease-spring), background .25s;
+  position: relative;
+}
+.navbtn i { font-size: 20px; transition: transform .25s var(--ease-spring); }
+.navbtn.active { color: var(--text-primary); background: var(--chip-bg); }
+.navbtn.active i { transform: translateY(-1px); color: var(--tone-blue-fg); }
+.navbtn:active { transform: scale(0.9); }
+
+/* Compensa a barra de navegação flutuante para o conteúdo não ficar tapado */
+
+/* ---------------------------------------------------------------------
+   11. TOAST
+   --------------------------------------------------------------------- */
+.toast {
+  position: fixed; left: 50%; bottom: 112px; transform: translate(-50%, 12px);
+  background: var(--sheet-bg); color: var(--text-primary);
+  padding: 13px 22px; border-radius: 18px; font-size: 13.5px; font-weight: 700;
+  border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
+  opacity: 0; pointer-events: none; transition: opacity .3s var(--ease), transform .3s var(--ease);
+  z-index: 60; max-width: 80vw; text-align: center;
+}
+.toast--show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------------------------------------------------------------------
+   12. RESPONSIVE
+   --------------------------------------------------------------------- */
+@media (min-width: 480px) {
+  .hero__temp { font-size: 100px; }
+  .details-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (max-width: 340px) {
+  .hero__temp { font-size: 78px; }
+  .hero__icon { font-size: 64px; }
+}
+
+/* ---------------------------------------------------------------------
+   13. SEVERE WEATHER ALERT
+   --------------------------------------------------------------------- */
+.alert-banner {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 14px 14px; border-radius: var(--radius-lg); margin-bottom: 14px;
+  text-align: left; color: #fff; position: relative;
+  background: linear-gradient(120deg, #E85D4A, #F0904A);
+  box-shadow: 0 16px 34px -16px rgba(210,70,40,0.55);
+  animation: cardIn .5s var(--ease);
+}
+.alert-banner[data-level="severe"] { background: linear-gradient(120deg, #C4292E, #E8543F); }
+.alert-banner[data-level="warning"] { background: linear-gradient(120deg, #E85D4A, #F0904A); }
+.alert-banner[data-level="watch"] { background: linear-gradient(120deg, #4E7CF0, #6FA0F5); }
+.alert-banner[data-level="rain"] { background: linear-gradient(120deg, #2E6BE6, #4FA0F0); cursor: default; }
+.alert-banner--rain .alert-banner__text strong { font-size: 14.5px; }
+.alert-banner i:first-child { font-size: 24px; flex: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+.alert-banner__text { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.alert-banner__text strong { font-size: 14.5px; font-weight: 800; }
+.alert-banner__text span { font-size: 12.5px; opacity: 0.92; font-weight: 600; }
+.alert-banner__dismiss { font-size: 13px !important; opacity: 0.8; padding: 6px; flex: none; }
+
+/* ---------------------------------------------------------------------
+   14. DAILY TIP CHIP
+   --------------------------------------------------------------------- */
+.hero__tip {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 14px;
+  font-size: 12.5px; font-weight: 700; color: var(--text-primary);
+  padding: 8px 16px; border-radius: 16px;
+  background: var(--tone-gold-bg); border: 1px solid var(--glass-border);
+}
+
+/* Comparação histórica ("hoje está X° acima/abaixo da média") */
+.hero__historical {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+}
+.hero__historical[data-tone="above"] { color: var(--tone-rose-fg); }
+.hero__historical[data-tone="below"] { color: var(--tone-cyan-fg); }
+
+/* Rodapé em modo offline (dados guardados, sem ligação) */
+.footer-note--refresh.is-offline {
+  background: var(--tone-amber-bg); color: var(--tone-amber-fg); border-color: transparent;
+}
+
+/* ---------------------------------------------------------------------
+   15. TEMPERATURE CHART
+   --------------------------------------------------------------------- */
+.chart-wrap { padding: 4px 2px 0; }
+#tempChartSvg { width: 100%; height: 110px; overflow: visible; }
+.chart-labels {
+  display: flex; justify-content: space-between; margin-top: 6px;
+  font-size: 10.5px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+}
+
+/* ---------------------------------------------------------------------
+   16. LANGUAGE PICKER BUTTON + MODAL SHEETS
+   --------------------------------------------------------------------- */
+.picker-btn {
+  display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700;
+  color: var(--text-secondary); padding: 8px 4px;
+}
+.picker-btn i { font-size: 12px; opacity: 0.6; }
+
+.settings-group-title {
+  font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-tertiary); margin: 20px 4px 10px;
+}
+.setting-row--action { width: 100%; text-align: left; cursor: pointer; }
+.setting-row--action i.bi-chevron-right { font-size: 13px; color: var(--text-tertiary); }
+.setting-row:nth-child(1) .setting-row__label i { background: var(--tone-green-bg); color: var(--tone-green-fg); }
+.setting-row--action .setting-row__label i { background: var(--tone-slate-bg); color: var(--tone-slate-fg); }
+
+.sheet-overlay {
+  position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(8,12,22,0.5);
+  opacity: 0; pointer-events: none; transition: opacity .28s var(--ease);
+}
+.sheet-overlay.is-open { opacity: 1; pointer-events: auto; }
+.sheet {
+  width: 100%; max-width: 560px; max-height: 78vh; overflow-y: auto;
+  background: var(--sheet-bg);
+  border: 1px solid var(--glass-border); border-bottom: none;
+  border-radius: 28px 28px 0 0; padding: 10px 20px calc(28px + var(--safe-bottom));
+  transform: translateY(24px); transition: transform .32s var(--ease-spring);
+  box-shadow: var(--glass-shadow);
+}
+.sheet-overlay.is-open .sheet { transform: translateY(0); }
+.sheet__handle { width: 40px; height: 5px; border-radius: 3px; background: var(--track-bg); margin: 6px auto 16px; }
+.sheet__title { font-family: 'Manrope',sans-serif; font-size: 19px; font-weight: 800; margin-bottom: 12px; text-align: center; }
+.sheet__list { display: flex; flex-direction: column; }
+.lang-item {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  padding: 14px 6px; border-bottom: 1px solid var(--glass-border); font-size: 15px; font-weight: 700; text-align: left;
+}
+.lang-item:last-child { border-bottom: none; }
+.lang-item__native { color: var(--text-tertiary); font-weight: 600; font-size: 12.5px; margin-left: 8px; }
+.lang-item i { color: var(--tone-teal-fg); font-size: 16px; opacity: 0; transition: opacity .15s; }
+.lang-item.is-active i { opacity: 1; }
+
+/* ---------------------------------------------------------------------
+   16b. FOLHA DE PARTILHA — grelha de apps (WhatsApp, Facebook, X…)
+   --------------------------------------------------------------------- */
+.share-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px;
+  padding: 4px 2px 8px;
+}
+.share-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  font-size: 11.5px; font-weight: 700; color: var(--text-secondary);
+  text-align: center; transition: transform .18s var(--ease-spring);
+}
+.share-opt:active { transform: scale(0.9); }
+.share-opt__icon {
+  width: 54px; height: 54px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+  color: #fff; box-shadow: 0 8px 18px -10px rgba(20,30,60,0.35);
+}
+.share-opt__icon--whatsapp { background: linear-gradient(135deg, #25D366, #128C7E); }
+.share-opt__icon--facebook { background: linear-gradient(135deg, #1877F2, #0C5DC7); }
+.share-opt__icon--twitter { background: linear-gradient(135deg, #2b2b2b, #000000); }
+.share-opt__icon--telegram { background: linear-gradient(135deg, #34AADF, #1E96D0); }
+.share-opt__icon--email { background: linear-gradient(135deg, #6E7B91, #4E5A6E); }
+.share-opt__icon--copy { background: linear-gradient(135deg, #4E7CF0, #3560D0); }
+.share-opt__icon--download { background: linear-gradient(135deg, #F5A421, #E58A0E); }
+.share-opt__icon--more { background: linear-gradient(135deg, #93A6C4, #6E7F9C); }
+
+.about-mark {
+  width: 64px; height: 64px; border-radius: 22px; margin: 4px auto 14px;
+  display: flex; align-items: center; justify-content: center; font-size: 30px;
+  background: var(--tone-gold-bg); color: var(--tone-gold-fg);
+}
+.about-text { text-align: center; font-size: 14px; color: var(--text-secondary); line-height: 1.5; padding: 0 8px; margin-bottom: 4px; }
+.sheet__close {
+  width: 100%; margin-top: 18px; padding: 15px; border-radius: 18px; font-weight: 800; font-size: 15px;
+  background: var(--chip-bg); border: 1px solid var(--glass-border); color: var(--text-primary);
+}
+
+/* RTL básico (árabe) — inverte alinhamento de texto; o layout de ícones
+   mantém-se por simplicidade, mas a leitura de texto fica correta. */
+html[dir="rtl"] body { direction: rtl; }
+html[dir="rtl"] .hero__minmax, html[dir="rtl"] .day-row, html[dir="rtl"] .setting-row__label { direction: rtl; }
+
+/* Focus visibility for accessibility (keyboard nav) */
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--tone-blue-fg); outline-offset: 2px;
+}
+
